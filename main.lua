@@ -33,11 +33,10 @@ end
 
 Meteor = {}
 
-function Meteor:new(x, y, speed, direction)
+function Meteor:new(pos, speed, direction)
     self.__index = self
     return setmetatable({
-        x = x or math.random(0, WIN_WIDTH),
-        y = y or -100,
+        pos = pos or vector(math.random(0, WIN_WIDTH), -100),
         speed = speed or math.random(100, 400),
         direction = direction or vector(uniform(-0.6, 0.6), 1),
         rotation_speed = math.random(math.rad(-60), math.rad(60)),
@@ -47,18 +46,16 @@ function Meteor:new(x, y, speed, direction)
 end
 
 function Meteor:update(dt)
-    self.y = self.y + self.direction.y * self.speed * dt
-    self.x = self.x + self.direction.x * self.speed * dt
+    self.pos = self.pos + self.direction * self.speed * dt
     self.rotation = self.rotation + self.rotation_speed * dt
 end
 
 Player = {}
 
-function Player:new(x, y)
+function Player:new(pos)
     self.__index = self
     return setmetatable({
-        x = x, -- refactor to use vector()
-        y = y,
+        pos = pos or vector(),
         speed = 200,
         direction = vector(),
     }, self)
@@ -81,8 +78,7 @@ function Player:input()
 end
 
 function Player:move(dt)
-    self.y = self.y + self.direction.y * self.speed * dt
-    self.x = self.x + self.direction.x * self.speed * dt
+    self.pos = self.pos + self.direction * self.speed * dt
 end
 
 function Player:update(dt)
@@ -108,7 +104,7 @@ local function filterDead(list)
     return new_list
 end
 
-local player = Player:new(0, 0)
+local player = Player:new()
 local Images = {}
 local starPositions = {}
 local meteors = {}
@@ -126,8 +122,7 @@ function love.load()
     Images.laser = love.graphics.newImage("images/laser.png")
     Images.star = love.graphics.newImage("images/star.png")
 
-    player.x = WIN_WIDTH / 2
-    player.y = WIN_HEIGHT - 200
+    player.pos = vector(WIN_WIDTH / 2 - Images.player:getWidth() / 2, WIN_HEIGHT - 200)
 
     for i = 1, math.random(15, 20) do
         starPositions[i] = {
@@ -151,8 +146,8 @@ function love.update(dt)
         meteor:update(dt)
 
         -- TODO: refactor this to use a rectangle class which says if it is contained
-        if meteor.x < killLowerOffset.x or meteor.x > killUpperOffset.x
-            or meteor.y < killLowerOffset.y or meteor.y > killUpperOffset.y
+        if meteor.pos.x < killLowerOffset.x or meteor.pos.x > killUpperOffset.x
+            or meteor.pos.y < killLowerOffset.y or meteor.pos.y > killUpperOffset.y
         then
             meteor.is_dead = true
         end
@@ -166,16 +161,17 @@ function love.draw()
         love.graphics.rectangle("fill", 0, 0, WIN_WIDTH, WIN_HEIGHT)
     end)
 
-    love.graphics.print("Hello, Players!", WIN_WIDTH / 2, WIN_HEIGHT / 2 - 100)
-    love.graphics.print("Get ready", WIN_WIDTH / 2, WIN_HEIGHT / 2 - 50)
-    for i = 1, #starPositions do
-        local scale = starPositions[i].scale
-        love.graphics.draw(Images.star, starPositions[i].x, starPositions[i].y, scale, scale)
+    if love.timer.getTime() < 5 then
+        love.graphics.printf("Get Ready!", 0, WIN_HEIGHT / 2 - 50, WIN_WIDTH, "center")
+        love.graphics.printf("Use SPACE to shoot and move with arrow keys", 0, WIN_HEIGHT / 2, WIN_WIDTH, "center")
+    end
+    for _, starPos in ipairs(starPositions) do
+        love.graphics.draw(Images.star, starPos.x, starPos.y, starPos.scale, starPos.scale)
     end
     for _, meteor in ipairs(meteors) do
-        love.graphics.draw(Images.meteor, meteor.x, meteor.y, meteor.rotation, 1, 1, Images.meteor:getWidth() / 2,
+        love.graphics.draw(Images.meteor, meteor.pos.x, meteor.pos.y, meteor.rotation, 1, 1, Images.meteor:getWidth() / 2,
             Images.meteor:getHeight() / 2)
     end
 
-    love.graphics.draw(Images.player, player.x, player.y)
+    love.graphics.draw(Images.player, player.pos.x, player.pos.y)
 end
