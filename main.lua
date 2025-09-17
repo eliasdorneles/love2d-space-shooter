@@ -4,6 +4,10 @@ local lick = require("vendor/lick")
 
 lick.reset = true
 
+local function uniform(a, b)
+    return a + (b - a) * math.random()
+end
+
 -- Rect = {}
 --
 -- function Rect:new(x, y, width, height)
@@ -25,13 +29,73 @@ lick.reset = true
 --         rect = Rect:new(0, 0, image.getWidth(), image.getHeight()),
 --     }, self)
 -- end
+Timer = {}
+
+function Timer:new(duration, callback, repeat_x_times)
+    self.__index = self
+    return setmetatable({
+        duration = duration,
+        callback = callback,
+        repeat_x_times = repeat_x_times or -1,
+        start_time = 0,
+        count = 0,
+        is_running = false,
+    }, self)
+end
+
+function Timer:start()
+    self.is_running = true
+    self.start_time = love.timer.getTime()
+end
+
+function Timer:stop()
+    self.is_running = false
+    self.start_time = 0
+end
+
+function Timer:update()
+    if not self.is_running then return end
+    local current_time = love.timer.getTime()
+    if current_time ~= 0 and current_time - self.start_time >= self.duration then
+        if self.callback then
+            self.callback()
+        end
+        self:stop()
+        if self.repeat_x_times == -1 or self.count < self.repeat_x_times then
+            self:start()
+        end
+        self.count = self.count + 1
+    end
+end
+
+Meteor = {}
+
+function Meteor:new(x, y, speed, direction)
+    self.__index = self
+    return setmetatable({
+        x = x,
+        y = y,
+        speed = speed,
+        direction = direction,
+        is_dead = false,
+    }, self)
+end
+
+function Meteor:move(dt)
+    self.y = self.y + self.direction.y * self.speed * dt
+    self.x = self.x + self.direction.x * self.speed * dt
+end
+
+function Meteor:update(dt)
+    self:move(dt)
+end
 
 Player = {}
 
 function Player:new(x, y)
     self.__index = self
     return setmetatable({
-        x = x,
+        x = x, -- refactor to use vector()
         y = y,
         speed = 200,
         direction = vector(),
@@ -71,9 +135,33 @@ local function withColor(color, func, ...)
     love.graphics.setColor(old_r, old_g, old_b, old_a)
 end
 
+local function filterDead(list)
+    local new_list = {}
+    for _, item in ipairs(list) do
+        if not item.is_dead then
+            table.insert(new_list, item)
+        end
+    end
+    return new_list
+end
+
 local player = Player:new(0, 0)
-local starPositions = {}
 local Images = {}
+local starPositions = {}
+local meteors = {}
+
+
+local function addMeteor()
+    local newMeteor = Meteor:new(
+        math.random(0, WIN_WIDTH),
+        0,
+        math.random(100, 200),
+        vector(uniform(-0.6, 0.6), 1)
+    )
+    table.insert(meteors, newMeteor)
+end
+
+local meteorTimer = Timer:new(1, addMeteor)
 
 function love.load()
     WIN_WIDTH, WIN_HEIGHT = love.graphics.getDimensions()
@@ -93,10 +181,27 @@ function love.load()
             scale = math.random(3, 7) / 10
         }
     end
+
+    meteorTimer:start()
 end
 
 function love.update(dt)
+    meteorTimer:update()
+
     player:update(dt)
+
+    local killLowerOffset = vector(-500, -500)
+    local killUpperOffset = vector(WIN_WIDTH, WIN_HEIGHT) + vector(500, 500)
+    for _, meteor in ipairs(meteors) do
+        meteor:update(dt)
+        if meteor.x < killLowerOffset.x or meteor.x > killUpperOffset.x
+            or meteor.y < 0 or meteor.y > killUpperOffset.y
+        then
+            meteor.is_dead = true
+        end
+    end
+
+    meteors = filterDead(meteors)
 end
 
 function love.draw()
@@ -110,5 +215,9 @@ function love.draw()
         local scale = starPositions[i].scale
         love.graphics.draw(Images.star, starPositions[i].x, starPositions[i].y, scale, scale)
     end
+    for i = 1, #meteors do
+        love.graphics.draw(Images.meteor, meteors[i].x, meteors[i].y)
+    end
+
     love.graphics.draw(Images.player, player.x, player.y)
 end
