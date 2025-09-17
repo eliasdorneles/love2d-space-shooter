@@ -1,7 +1,8 @@
-math = require("math")
-LICK = require("vendor/lick")
-LICK.reset = true
 local colors = require("colors")
+local vector = require("vendor/vector")
+local lick = require("vendor/lick")
+
+lick.reset = true
 
 -- Rect = {}
 --
@@ -33,11 +34,34 @@ function Player:new(x, y)
         x = x,
         y = y,
         speed = 200,
+        direction = vector(),
     }, self)
 end
 
-function Player:move()
+function Player:input()
+    self.direction = vector()
+    if love.keyboard.isDown("down") then
+        self.direction.y = 1
+    end
+    if love.keyboard.isDown("up") then
+        self.direction.y = -1
+    end
+    if love.keyboard.isDown("left") then
+        self.direction.x = -1
+    end
+    if love.keyboard.isDown("right") then
+        self.direction.x = 1
+    end
+end
 
+function Player:move(dt)
+    self.y = self.y + self.direction.y * self.speed * dt
+    self.x = self.x + self.direction.x * self.speed * dt
+end
+
+function Player:update(dt)
+    self:input()
+    self:move(dt)
 end
 
 local function withColor(color, func, ...)
@@ -47,42 +71,32 @@ local function withColor(color, func, ...)
     love.graphics.setColor(old_r, old_g, old_b, old_a)
 end
 
+local player = Player:new(0, 0)
+local starPositions = {}
+local Images = {}
+
 function love.load()
     WIN_WIDTH, WIN_HEIGHT = love.graphics.getDimensions()
     print("win size", WIN_WIDTH, WIN_HEIGHT)
-    IMAGES = {}
-    IMAGES.player = love.graphics.newImage("images/player.png")
-    IMAGES.meteor = love.graphics.newImage("images/meteor.png")
-    IMAGES.laser = love.graphics.newImage("images/laser.png")
-    IMAGES.star = love.graphics.newImage("images/star.png")
+    Images.player = love.graphics.newImage("images/player.png")
+    Images.meteor = love.graphics.newImage("images/meteor.png")
+    Images.laser = love.graphics.newImage("images/laser.png")
+    Images.star = love.graphics.newImage("images/star.png")
 
-    STAR_POS = {}
+    player.x = WIN_WIDTH / 2
+    player.y = WIN_HEIGHT - 200
+
     for i = 1, math.random(15, 20) do
-        STAR_POS[i] = {
+        starPositions[i] = {
             x = math.random(0, WIN_WIDTH),
             y = math.random(0, WIN_HEIGHT),
             scale = math.random(3, 7) / 10
         }
     end
-    PLAYER = Player:new(WIN_WIDTH / 2, WIN_HEIGHT - 200)
 end
 
 function love.update(dt)
-    local direction = { x = 0, y = 0 }
-    if love.keyboard.isDown("down") then
-        direction.y = 1
-    end
-    if love.keyboard.isDown("up") then
-        direction.y = -1
-    end
-    if love.keyboard.isDown("left") then
-        direction.x = -1
-    end
-    if love.keyboard.isDown("right") then
-        direction.x = 1
-    end
-    PLAYER.y = PLAYER.y + direction.y * PLAYER.speed * dt
-    PLAYER.x = PLAYER.x + direction.x * PLAYER.speed * dt
+    player:update(dt)
 end
 
 function love.draw()
@@ -92,9 +106,9 @@ function love.draw()
 
     love.graphics.print("Hello, Players!", WIN_WIDTH / 2, WIN_HEIGHT / 2 - 100)
     love.graphics.print("Get ready", WIN_WIDTH / 2, WIN_HEIGHT / 2 - 50)
-    for i = 1, #STAR_POS do
-        local scale = STAR_POS[i].scale
-        love.graphics.draw(IMAGES.star, STAR_POS[i].x, STAR_POS[i].y, scale, scale)
+    for i = 1, #starPositions do
+        local scale = starPositions[i].scale
+        love.graphics.draw(Images.star, starPositions[i].x, starPositions[i].y, scale, scale)
     end
-    love.graphics.draw(IMAGES.player, PLAYER.x, PLAYER.y)
+    love.graphics.draw(Images.player, player.x, player.y)
 end
