@@ -1,7 +1,7 @@
 math = require("math")
 LICK = require("vendor/lick")
 LICK.reset = true
-local utils = require("utils")
+local colors = require("colors")
 
 -- Rect = {}
 --
@@ -40,6 +40,13 @@ function Player:move()
 
 end
 
+local function withColor(color, func, ...)
+    local old_r, old_g, old_b, old_a = love.graphics.getColor()
+    love.graphics.setColor(love.math.colorFromBytes(colors.color(color)))
+    func(...)
+    love.graphics.setColor(old_r, old_g, old_b, old_a)
+end
+
 function love.load()
     WIN_WIDTH, WIN_HEIGHT = love.graphics.getDimensions()
     print("win size", WIN_WIDTH, WIN_HEIGHT)
@@ -57,7 +64,6 @@ function love.load()
             scale = math.random(3, 7) / 10
         }
     end
-    print(utils)
     PLAYER = Player:new(WIN_WIDTH / 2, WIN_HEIGHT - 200)
 end
 
@@ -80,7 +86,9 @@ function love.update(dt)
 end
 
 function love.draw()
-    utils.drawBgColor(16, 0, 64)
+    withColor("#100040", function()
+        love.graphics.rectangle("fill", 0, 0, WIN_WIDTH, WIN_HEIGHT)
+    end)
 
     love.graphics.print("Hello, Players!", WIN_WIDTH / 2, WIN_HEIGHT / 2 - 100)
     love.graphics.print("Get ready", WIN_WIDTH / 2, WIN_HEIGHT / 2 - 50)
