@@ -1,26 +1,16 @@
-local colors = require("colors")
 local vector = require("vendor/hump/vector")
 local Timer = require("vendor/hump/timer")
-local lick = require("vendor/lick")
+local colors = require("colors")
+local Rect = require("rect")
 
+local lick = require("vendor/lick")
 lick.reset = true
 
 local function uniform(a, b)
     return a + (b - a) * math.random()
 end
 
--- Rect = {}
---
--- function Rect:new(x, y, width, height)
---     self.__index = self
---     return setmetatable({
---         x = x,
---         y = y,
---         width = width,
---         height = height,
---     }, self)
--- end
---
+
 -- Sprite = {}
 --
 -- function Sprite:new(image)
@@ -108,6 +98,7 @@ local player = Player:new()
 local Images = {}
 local starPositions = {}
 local meteors = {}
+local bigRect = Rect:new(0, 0)
 
 
 local function addMeteor()
@@ -117,6 +108,9 @@ end
 
 function love.load()
     WIN_WIDTH, WIN_HEIGHT = love.graphics.getDimensions()
+    bigRect.width, bigRect.height = WIN_WIDTH, WIN_HEIGHT
+    bigRect:inflateInplace(500, 500)
+
     Images.player = love.graphics.newImage("images/player.png")
     Images.meteor = love.graphics.newImage("images/meteor.png")
     Images.laser = love.graphics.newImage("images/laser.png")
@@ -140,15 +134,13 @@ function love.update(dt)
 
     player:update(dt)
 
-    local killLowerOffset = vector(-500, -500)
-    local killUpperOffset = vector(WIN_WIDTH, WIN_HEIGHT) + vector(500, 500)
+
     for _, meteor in ipairs(meteors) do
         meteor:update(dt)
 
-        -- TODO: refactor this to use a rectangle class which says if it is contained
-        if meteor.pos.x < killLowerOffset.x or meteor.pos.x > killUpperOffset.x
-            or meteor.pos.y < killLowerOffset.y or meteor.pos.y > killUpperOffset.y
-        then
+        local meteorRect = Rect:new(meteor.pos.x, meteor.pos.y, Images.meteor:getWidth(), Images.meteor:getHeight())
+        if not bigRect:contains(meteorRect) then
+            print('meteor killed')
             meteor.is_dead = true
         end
     end
