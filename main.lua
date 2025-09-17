@@ -1,5 +1,5 @@
 local colors = require("colors")
-local vector = require("vendor/vector")
+local vector = require("vendor/hump/vector")
 local lick = require("vendor/lick")
 
 lick.reset = true

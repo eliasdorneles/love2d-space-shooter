@@ -1,4 +1,3 @@
--- stolen from: https://github.com/vrld/hump/blob/master/vector.lua
 --[[
 Copyright (c) 2010-2013 Matthias Richter
 
@@ -217,4 +216,3 @@ return setmetatable({
 }, {
 	__call = function(_, ...) return new(...) end
 })
-
