@@ -36,21 +36,20 @@ Meteor = {}
 function Meteor:new(x, y, speed, direction)
     self.__index = self
     return setmetatable({
-        x = x,
-        y = y,
-        speed = speed,
-        direction = direction,
+        x = x or math.random(0, WIN_WIDTH),
+        y = y or -100,
+        speed = speed or math.random(100, 400),
+        direction = direction or vector(uniform(-0.6, 0.6), 1),
+        rotation_speed = math.random(math.rad(-60), math.rad(60)),
+        rotation = 0,
         is_dead = false,
     }, self)
 end
 
-function Meteor:move(dt)
+function Meteor:update(dt)
     self.y = self.y + self.direction.y * self.speed * dt
     self.x = self.x + self.direction.x * self.speed * dt
-end
-
-function Meteor:update(dt)
-    self:move(dt)
+    self.rotation = self.rotation + self.rotation_speed * dt
 end
 
 Player = {}
@@ -116,19 +115,12 @@ local meteors = {}
 
 
 local function addMeteor()
-    local newMeteor = Meteor:new(
-        math.random(0, WIN_WIDTH),
-        -100,
-        math.random(100, 200),
-        vector(uniform(-0.6, 0.6), 1)
-    )
-    table.insert(meteors, newMeteor)
+    table.insert(meteors, Meteor:new())
 end
 
 
 function love.load()
     WIN_WIDTH, WIN_HEIGHT = love.graphics.getDimensions()
-    print("win size", WIN_WIDTH, WIN_HEIGHT)
     Images.player = love.graphics.newImage("images/player.png")
     Images.meteor = love.graphics.newImage("images/meteor.png")
     Images.laser = love.graphics.newImage("images/laser.png")
@@ -180,8 +172,9 @@ function love.draw()
         local scale = starPositions[i].scale
         love.graphics.draw(Images.star, starPositions[i].x, starPositions[i].y, scale, scale)
     end
-    for i = 1, #meteors do
-        love.graphics.draw(Images.meteor, meteors[i].x, meteors[i].y)
+    for _, meteor in ipairs(meteors) do
+        love.graphics.draw(Images.meteor, meteor.x, meteor.y, meteor.rotation, 1, 1, Images.meteor:getWidth() / 2,
+            Images.meteor:getHeight() / 2)
     end
 
     love.graphics.draw(Images.player, player.x, player.y)
