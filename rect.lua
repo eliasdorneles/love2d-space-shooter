@@ -55,14 +55,22 @@ function Rect:copy()
     return Rect:new(self.pos.x, self.pos.y, self.width, self.height)
 end
 
-function Rect:toStr()
-    print(string.format("Rect(%f, %f, %f, %f)", self.pos.x, self.pos.y, self.width, self.height))
+function Rect:__tostring()
+    return string.format("Rect(%g, %g, %g, %g)", self.pos.x, self.pos.y, self.width, self.height)
 end
 
 function Rect:inflated(x, y)
     local copy = self:copy()
     copy:inflateInplace(x, y)
     return copy
+end
+
+function Rect.fromImage(image, pos)
+    local rect = Rect:new(0, 0, image:getWidth(), image:getWidth())
+    if pos then
+        rect.pos = rect.pos + pos
+    end
+    return rect
 end
 
 return Rect

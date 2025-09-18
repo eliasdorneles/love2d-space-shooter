@@ -23,12 +23,13 @@ end
 
 Meteor = {}
 
-function Meteor:new(pos, speed, direction)
+function Meteor:new(image)
     self.__index = self
     return setmetatable({
-        pos = pos or vector(math.random(0, WIN_WIDTH), -100),
-        speed = speed or math.random(100, 400),
-        direction = direction or vector(uniform(-0.6, 0.6), uniform(0.8, 1)),
+        image = image,
+        rect = Rect.fromImage(image, vector(math.random(0, WIN_WIDTH), -100)),
+        speed = math.random(100, 400),
+        direction = vector(uniform(-0.6, 0.6), uniform(0.8, 1)),
         rotation_speed = math.random(math.rad(-60), math.rad(60)),
         rotation = 0,
         is_dead = false,
@@ -36,19 +37,25 @@ function Meteor:new(pos, speed, direction)
 end
 
 function Meteor:update(dt)
-    self.pos = self.pos + self.direction * self.speed * dt
+    self.rect.pos = self.rect.pos + self.direction * self.speed * dt
     self.rotation = self.rotation + self.rotation_speed * dt
 end
 
 Player = {}
 
-function Player:new(pos)
+function Player:new()
     self.__index = self
     return setmetatable({
-        pos = pos or vector(),
+        rect = nil,
+        image = nil,
         speed = 200,
         direction = vector(),
     }, self)
+end
+
+function Player:init(image)
+    self.image = image
+    self.rect = Rect.fromImage(image, vector(WIN_WIDTH / 2 - image:getWidth() / 2, WIN_HEIGHT - 200))
 end
 
 function Player:input()
@@ -69,7 +76,7 @@ function Player:input()
 end
 
 function Player:move(dt)
-    self.pos = self.pos + self.direction * self.speed * dt
+    self.rect.pos = self.rect.pos + self.direction * self.speed * dt
 end
 
 function Player:update(dt)
@@ -102,22 +109,15 @@ local meteors = {}
 local bigRect = Rect:new(0, 0)
 
 
-local function addMeteor()
-    table.insert(meteors, Meteor:new())
-end
-
-
 function love.load()
     WIN_WIDTH, WIN_HEIGHT = love.graphics.getDimensions()
     bigRect.width, bigRect.height = WIN_WIDTH, WIN_HEIGHT
     bigRect:inflateInplace(500, 500)
 
-    Images.player = love.graphics.newImage("images/player.png")
-    Images.meteor = love.graphics.newImage("images/meteor.png")
     Images.laser = love.graphics.newImage("images/laser.png")
     Images.star = love.graphics.newImage("images/star.png")
 
-    player.pos = vector(WIN_WIDTH / 2 - Images.player:getWidth() / 2, WIN_HEIGHT - 200)
+    player:init(love.graphics.newImage("images/player.png"))
 
     for i = 1, math.random(15, 20) do
         starPositions[i] = {
@@ -127,7 +127,8 @@ function love.load()
         }
     end
 
-    Timer.every(1, addMeteor)
+    local meteorImg = love.graphics.newImage("images/meteor.png")
+    Timer.every(1, function() table.insert(meteors, Meteor:new(meteorImg)) end)
 end
 
 function love.update(dt)
@@ -139,8 +140,7 @@ function love.update(dt)
     for _, meteor in ipairs(meteors) do
         meteor:update(dt)
 
-        local meteorRect = Rect:new(meteor.pos.x, meteor.pos.y, Images.meteor:getWidth(), Images.meteor:getHeight())
-        if not bigRect:contains(meteorRect) then
+        if not bigRect:contains(meteor.rect) then
             print('meteor killed')
             meteor.is_dead = true
         end
@@ -162,9 +162,10 @@ function love.draw()
         love.graphics.draw(Images.star, starPos.x, starPos.y, starPos.scale, starPos.scale)
     end
     for _, meteor in ipairs(meteors) do
-        love.graphics.draw(Images.meteor, meteor.pos.x, meteor.pos.y, meteor.rotation, 1, 1, Images.meteor:getWidth() / 2,
-            Images.meteor:getHeight() / 2)
+        love.graphics.draw(meteor.image, meteor.rect.pos.x, meteor.rect.pos.y, meteor.rotation, 1, 1,
+            meteor.image:getWidth() / 2,
+            meteor.image:getHeight() / 2)
     end
 
-    love.graphics.draw(Images.player, player.pos.x, player.pos.y)
+    love.graphics.draw(player.image, player.rect.pos.x, player.rect.pos.y)
 end
