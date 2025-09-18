@@ -95,58 +95,89 @@ local function filterDead(list)
     return new_list
 end
 
-local player = Player:new()
-local Images = {}
-local starPositions = {}
-local meteors = {}
-local bigRect = Rect:new(0, 0)
 
+Game = {}
 
-local function addMeteor()
-    table.insert(meteors, Meteor:new())
+function Game:new()
+    self.__index = self
+    return setmetatable({
+        player = Player:new(),
+        starPositions = {},
+        meteors = {},
+        bigRect = Rect:new(0, 0),
+        images = {},
+    }, self)
 end
 
-
-function love.load()
-    WIN_WIDTH, WIN_HEIGHT = love.graphics.getDimensions()
-    bigRect.width, bigRect.height = WIN_WIDTH, WIN_HEIGHT
-    bigRect:inflateInplace(500, 500)
-
-    Images.player = love.graphics.newImage("images/player.png")
-    Images.meteor = love.graphics.newImage("images/meteor.png")
-    Images.laser = love.graphics.newImage("images/laser.png")
-    Images.star = love.graphics.newImage("images/star.png")
-
-    player.pos = vector(WIN_WIDTH / 2 - Images.player:getWidth() / 2, WIN_HEIGHT - 200)
-
+function Game:init(images)
+    self.images = images
+    self.bigRect.width, self.bigRect.height = WIN_WIDTH, WIN_HEIGHT
+    self.bigRect:inflateInplace(500, 500)
     for i = 1, math.random(15, 20) do
-        starPositions[i] = {
+        self.starPositions[i] = {
             x = math.random(0, WIN_WIDTH),
             y = math.random(0, WIN_HEIGHT),
             scale = math.random(3, 7) / 10
         }
     end
 
-    Timer.every(1, addMeteor)
+    self.player.pos = vector(WIN_WIDTH / 2 - self.images.player:getWidth() / 2, WIN_HEIGHT - 200)
+
+    Timer.every(1, function() self:addMeteor() end)
 end
 
-function love.update(dt)
-    Timer.update(dt)
+function Game:addMeteor()
+    table.insert(self.meteors, Meteor:new())
+end
 
-    player:update(dt)
+function Game:update(dt)
+    self.player:update(dt)
 
-
-    for _, meteor in ipairs(meteors) do
+    for _, meteor in ipairs(self.meteors) do
         meteor:update(dt)
 
-        local meteorRect = Rect:new(meteor.pos.x, meteor.pos.y, Images.meteor:getWidth(), Images.meteor:getHeight())
-        if not bigRect:contains(meteorRect) then
+        local meteorRect = Rect:new(meteor.pos.x, meteor.pos.y, self.images.meteor:getWidth(),
+            self.images.meteor:getHeight())
+        if not self.bigRect:contains(meteorRect) then
             print('meteor killed')
             meteor.is_dead = true
         end
     end
 
-    meteors = filterDead(meteors)
+    self.meteors = filterDead(self.meteors)
+end
+
+function Game:draw()
+    for _, starPos in ipairs(self.starPositions) do
+        love.graphics.draw(self.images.star, starPos.x, starPos.y, starPos.scale, starPos.scale)
+    end
+    for _, meteor in ipairs(self.meteors) do
+        love.graphics.draw(self.images.meteor, meteor.pos.x, meteor.pos.y, meteor.rotation, 1, 1,
+            self.images.meteor:getWidth() / 2,
+            self.images.meteor:getHeight() / 2)
+    end
+
+    love.graphics.draw(self.images.player, self.player.pos.x, self.player.pos.y)
+end
+
+-- the game object
+local game = Game:new()
+
+function love.load()
+    WIN_WIDTH, WIN_HEIGHT = love.graphics.getDimensions()
+
+    local images = {}
+    images.player = love.graphics.newImage("images/player.png")
+    images.meteor = love.graphics.newImage("images/meteor.png")
+    images.laser = love.graphics.newImage("images/laser.png")
+    images.star = love.graphics.newImage("images/star.png")
+
+    game:init(images)
+end
+
+function love.update(dt)
+    Timer.update(dt)
+    game:update(dt)
 end
 
 function love.draw()
@@ -158,13 +189,6 @@ function love.draw()
         love.graphics.printf("Get Ready!", 0, WIN_HEIGHT / 2 - 50, WIN_WIDTH, "center")
         love.graphics.printf("Use SPACE to shoot and move with arrow keys", 0, WIN_HEIGHT / 2, WIN_WIDTH, "center")
     end
-    for _, starPos in ipairs(starPositions) do
-        love.graphics.draw(Images.star, starPos.x, starPos.y, starPos.scale, starPos.scale)
-    end
-    for _, meteor in ipairs(meteors) do
-        love.graphics.draw(Images.meteor, meteor.pos.x, meteor.pos.y, meteor.rotation, 1, 1, Images.meteor:getWidth() / 2,
-            Images.meteor:getHeight() / 2)
-    end
 
-    love.graphics.draw(Images.player, player.pos.x, player.pos.y)
+    game:draw()
 end
