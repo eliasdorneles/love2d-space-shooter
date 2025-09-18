@@ -31,6 +31,14 @@ function Rect:getCenter()
     return self.pos + vector(self.width / 2, self.height / 2)
 end
 
+function Rect:getCenterX()
+    return self.pos.x + self.width / 2
+end
+
+function Rect:getCenterY()
+    return self.pos.y + self.height / 2
+end
+
 function Rect:setCenter(pos)
     self.pos = pos - vector(self.width / 2, self.height / 2)
 end
