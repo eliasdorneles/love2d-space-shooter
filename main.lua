@@ -28,7 +28,7 @@ function Meteor:new(pos, speed, direction)
     return setmetatable({
         pos = pos or vector(math.random(0, WIN_WIDTH), -100),
         speed = speed or math.random(100, 400),
-        direction = direction or vector(uniform(-0.6, 0.6), 1),
+        direction = direction or vector(uniform(-0.6, 0.6), uniform(0.8, 1)),
         rotation_speed = math.random(math.rad(-60), math.rad(60)),
         rotation = 0,
         is_dead = false,
@@ -65,6 +65,7 @@ function Player:input()
     if love.keyboard.isDown("right") then
         self.direction.x = 1
     end
+    self.direction:normalizeInplace()
 end
 
 function Player:move(dt)
