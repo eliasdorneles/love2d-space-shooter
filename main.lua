@@ -194,6 +194,7 @@ local gameOver = false
 function love.load()
     math.randomseed(os.time())
 
+    -- TODO: set window title
     WIN_WIDTH, WIN_HEIGHT = love.graphics.getDimensions()
     bigRect.width, bigRect.height = WIN_WIDTH, WIN_HEIGHT
     bigRect:inflateInplace(500, 500)
@@ -231,17 +232,7 @@ local function handleGlobalEvents()
     end
 end
 
-function love.update(dt)
-    if gameOver then
-        -- TODO: allow restarting game
-        return
-    end
-    Timer.update(dt)
-
-    handleGlobalEvents()
-
-    allSprites:update(dt)
-
+local function handleCollisions()
     for meteor in meteors:iter() do
         if meteor.hitbox_rect:collideRect(player.hitbox_rect) then
             gameOver = true
@@ -255,12 +246,25 @@ function love.update(dt)
                 laser.is_dead = true
                 meteor.is_dead = true
                 -- BOOOM!
-                local explosion = Explosion:new(Images.explosion, meteor.rect:getCenter())
-                allSprites:add(explosion)
+                allSprites:add(Explosion:new(Images.explosion, meteor.rect:getCenter()))
                 -- TODO: play sound
             end
         end
     end
+end
+
+function love.update(dt)
+    if gameOver then
+        -- TODO: allow restarting game
+        return
+    end
+    Timer.update(dt)
+
+    handleGlobalEvents()
+
+    allSprites:update(dt)
+
+    handleCollisions()
 
     meteors:cleanup()
     lasers:cleanup()
