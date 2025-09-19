@@ -1,3 +1,4 @@
+require("utils")
 local vector = require("vendor/hump/vector")
 local Timer = require("vendor/hump/timer")
 local anim8 = require 'vendor/anim8'
@@ -7,34 +8,6 @@ local Rect = require("rect")
 -- uncomment the lines below to allow hot-reloading
 local lick = require("vendor/lick")
 lick.reset = true
-
-local function uniform(a, b)
-    return a + (b - a) * math.random()
-end
-
-local function random_choice(list)
-    return list[math.random(1, #list)]
-end
-
-local function list_range(start, stop, step)
-    local list = {}
-    local count = 1
-    for i = start, stop, step do
-        list[count] = i
-        count = count + 1
-    end
-    return list
-end
-
-local function filter(list, predicate)
-    local new_list = {}
-    for _, item in ipairs(list) do
-        if predicate(item) then
-            table.insert(new_list, item)
-        end
-    end
-    return new_list
-end
 
 Meteor = {}
 local meteorAngleRanges = list_range(-60, 60, 10)
