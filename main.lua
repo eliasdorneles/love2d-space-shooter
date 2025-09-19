@@ -182,15 +182,11 @@ local function withColor(color, func, ...)
     love.graphics.setColor(old_r, old_g, old_b, old_a)
 end
 
-local function filterDead(list)
-    return filter(list, function(it) return not it.is_dead end)
-end
-
 local allSprites = sprite.Group:new()
+local meteors = sprite.Group:new()
+local lasers = sprite.Group:new()
 local player = Player:new()
 local Images = {}
-local meteors = {}
-local lasers = {}
 local bigRect = Rect:new(0, 0)
 local gameOver = false
 
@@ -219,7 +215,7 @@ function love.load()
 
     Timer.every(0.5, function()
         local meteor = Meteor:new(Images.meteor)
-        table.insert(meteors, meteor)
+        meteors:add(meteor)
         allSprites:add(meteor)
     end)
 end
@@ -227,9 +223,10 @@ end
 local function handleGlobalEvents()
     if love.keyboard.isDown("space") and player.canShoot then
         player:shoot()
+        -- TODO: play sound
         local laser = Laser:new(Images.laser, player.rect:getMidTop())
-        table.insert(lasers, laser)
         allSprites:add(laser)
+        lasers:add(laser)
         laser:start()
     end
 end
@@ -241,11 +238,11 @@ function love.update(dt)
     end
     Timer.update(dt)
 
-    allSprites:update(dt)
-
     handleGlobalEvents()
 
-    for _, meteor in ipairs(meteors) do
+    allSprites:update(dt)
+
+    for meteor in meteors:iter() do
         if meteor.hitbox_rect:collideRect(player.hitbox_rect) then
             gameOver = true
         end
@@ -253,26 +250,20 @@ function love.update(dt)
         if not bigRect:contains(meteor.rect) then
             meteor.is_dead = true
         end
-        for _, laser in ipairs(lasers) do
+        for laser in lasers:iter() do
             if meteor.hitbox_rect:collideRect(laser.rect) then
                 laser.is_dead = true
                 meteor.is_dead = true
                 -- BOOOM!
                 local explosion = Explosion:new(Images.explosion, meteor.rect:getCenter())
                 allSprites:add(explosion)
+                -- TODO: play sound
             end
         end
     end
 
-    -- TODO: in order to eliminate these manual filterDead calls, we'll have to
-    -- add some sort of "sprite type/class" to sprite groups, so that we can
-    -- manage their existence there in the same data structure, but keep track
-    -- of the different types when we need them to check collisions, etc. The
-    -- issue is that we cannot just use multiple sprite groups and call
-    -- group:update(dt) on all of them, otherwise the sprites will be updated
-    -- multiple times for the same frame.
-    meteors = filterDead(meteors)
-    lasers = filterDead(lasers)
+    meteors:cleanup()
+    lasers:cleanup()
 end
 
 function love.draw()
