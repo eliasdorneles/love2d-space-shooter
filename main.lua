@@ -189,6 +189,7 @@ local player = Player:new()
 local Images = {}
 local bigRect = Rect:new(0, 0)
 local gameOver = false
+local score = 0
 
 
 function love.load()
@@ -247,6 +248,7 @@ local function handleCollisions()
                 meteor.is_dead = true
                 -- BOOOM!
                 allSprites:add(Explosion:new(Images.explosion, meteor.rect:getCenter()))
+                score = score + 5
                 -- TODO: play sound
             end
         end
@@ -287,8 +289,5 @@ function love.draw()
 
     allSprites:draw()
 
-    -- TODO: display the score here instead of this
-    love.graphics.printf(
-        string.format("Lasers: %d, Meteors: %d", #lasers, #meteors),
-        0, 10, WIN_WIDTH, "right")
+    love.graphics.printf(string.format("Score: %d", score), -10, 10, WIN_WIDTH, "right")
 end
