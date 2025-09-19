@@ -1,8 +1,10 @@
 local vector = require("vendor/hump/vector")
 local Timer = require("vendor/hump/timer")
+local anim8 = require 'vendor/anim8'
 local colors = require("colors")
 local Rect = require("rect")
 
+-- uncomment the lines below to allow hot-reloading
 local lick = require("vendor/lick")
 lick.reset = true
 
@@ -24,6 +26,15 @@ local function list_range(start, stop, step)
     return list
 end
 
+local function filter(list, predicate)
+    local new_list = {}
+    for _, item in ipairs(list) do
+        if predicate(item) then
+            table.insert(new_list, item)
+        end
+    end
+    return new_list
+end
 
 Meteor = {}
 local meteorAngleRanges = list_range(-60, 60, 10)
@@ -75,6 +86,27 @@ end
 
 function Laser:update(dt)
     self.rect.pos = self.rect.pos + self.direction * self.speed * dt
+end
+
+Explosion = {}
+
+function Explosion:new(image, pos)
+    self.__index = self
+    local g = anim8.newGrid(50, 50, image:getWidth(), image:getHeight())
+    local animation = anim8.newAnimation(g('1-5', '1-5'), 0.05, 'pauseAtEnd')
+    return setmetatable({
+        image = image,
+        animation = animation:clone(),
+        pos = pos,
+        is_dead = false,
+    }, self)
+end
+
+function Explosion:update(dt)
+    self.animation:update(dt)
+    if self.animation.status == "paused" then
+        self.is_dead = true
+    end
 end
 
 Player = {}
@@ -143,33 +175,33 @@ end
 
 local function filterDead(list)
     -- TODO: create a sprite group abstraction that does this automatically
-    local new_list = {}
-    for _, item in ipairs(list) do
-        if not item.is_dead then
-            table.insert(new_list, item)
-        end
-    end
-    return new_list
+    return filter(list, function(it) return not it.is_dead end)
 end
 
 local player = Player:new()
 local Images = {}
 local starPositions = {}
 local meteors = {}
+local explosions = {}
 local lasers = {}
 local bigRect = Rect:new(0, 0)
 local gameOver = false
 
 
 function love.load()
+    math.randomseed(os.time())
+
     WIN_WIDTH, WIN_HEIGHT = love.graphics.getDimensions()
     bigRect.width, bigRect.height = WIN_WIDTH, WIN_HEIGHT
     bigRect:inflateInplace(500, 500)
 
     Images.laser = love.graphics.newImage("images/laser.png")
     Images.star = love.graphics.newImage("images/star.png")
+    Images.player = love.graphics.newImage("images/player.png")
+    Images.meteor = love.graphics.newImage("images/meteor.png")
+    Images.explosion = love.graphics.newImage("images/explosion/spritesheet.png")
 
-    player:init(love.graphics.newImage("images/player.png"))
+    player:init(Images.player)
 
     for i = 1, math.random(15, 20) do
         starPositions[i] = {
@@ -179,8 +211,7 @@ function love.load()
         }
     end
 
-    local meteorImg = love.graphics.newImage("images/meteor.png")
-    Timer.every(1, function() table.insert(meteors, Meteor:new(meteorImg)) end)
+    Timer.every(1, function() table.insert(meteors, Meteor:new(Images.meteor)) end)
 end
 
 local function handleGlobalEvents()
@@ -193,7 +224,10 @@ local function handleGlobalEvents()
 end
 
 function love.update(dt)
-    if gameOver then return end
+    if gameOver then
+        -- TODO: allow restarting game
+        return
+    end
     Timer.update(dt)
 
     player:update(dt)
@@ -203,6 +237,10 @@ function love.update(dt)
     for _, laser in ipairs(lasers) do
         laser:update(dt)
     end
+    for _, explosion in ipairs(explosions) do
+        explosion:update(dt)
+    end
+
     for _, meteor in ipairs(meteors) do
         meteor:update(dt)
 
@@ -217,13 +255,15 @@ function love.update(dt)
             if meteor.hitbox_rect:collideRect(laser.rect) then
                 laser.is_dead = true
                 meteor.is_dead = true
-                print('TODO: display explosion')
+                -- BOOOM!
+                table.insert(explosions, Explosion:new(Images.explosion, meteor.rect:getCenter()))
             end
         end
     end
 
     meteors = filterDead(meteors)
     lasers = filterDead(lasers)
+    explosions = filterDead(explosions)
 end
 
 function love.draw()
@@ -259,6 +299,10 @@ function love.draw()
 
     for _, laser in ipairs(lasers) do
         love.graphics.draw(laser.image, laser.rect.pos.x, laser.rect.pos.y)
+    end
+
+    for _, explosion in ipairs(explosions) do
+        explosion.animation:draw(explosion.image, explosion.pos.x, explosion.pos.y)
     end
 
     -- local boxRect = player.hitbox_rect
