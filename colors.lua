@@ -1,4 +1,4 @@
-M = {}
+local M = {}
 
 -- color list copied from:
 -- https://pyga.me/docs/ref/color_list.html

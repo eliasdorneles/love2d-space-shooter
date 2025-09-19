@@ -3,6 +3,7 @@ local vector = require("vendor/hump/vector")
 local Timer = require("vendor/hump/timer")
 local anim8 = require 'vendor/anim8'
 local colors = require("colors")
+local sprite = require("sprite")
 local Rect = require("rect")
 
 -- uncomment the lines below to allow hot-reloading
@@ -10,7 +11,7 @@ local lick = require("vendor/lick")
 lick.reset = true
 
 Meteor = {}
-local meteorAngleRanges = list_range(-60, 60, 10)
+local meteorAngleRanges = list(range(-60, 60, 10))
 
 function Meteor:new(image)
     self.__index = self
@@ -20,7 +21,7 @@ function Meteor:new(image)
         image = image,
         rect = rect,
         hitbox_rect = hitbox_rect,
-        speed = math.random(100, 400),
+        speed = math.random(100, 350),
         direction = vector(uniform(-0.6, 0.6), uniform(0.8, 1)),
         rotation_speed = math.rad(random_choice(meteorAngleRanges)),
         rotation = 0,
@@ -32,6 +33,29 @@ function Meteor:update(dt)
     self.rect.pos = self.rect.pos + self.direction * self.speed * dt
     self.hitbox_rect:setCenter(self.rect:getCenter())
     self.rotation = self.rotation + self.rotation_speed * dt
+end
+
+function Meteor:draw()
+    love.graphics.draw(
+        self.image, self.rect:getCenterX(), self.rect:getCenterY(),
+        self.rotation, 1, 1, self.image:getWidth() / 2, self.image:getHeight() / 2)
+end
+
+Star = {}
+
+function Star:new(image, pos)
+    self.__index = self
+    return setmetatable({
+        image = image,
+        pos = pos,
+        scale = math.random(3, 7) / 10
+    }, self)
+end
+
+function Star:update() end
+
+function Star:draw()
+    love.graphics.draw(self.image, self.pos.x, self.pos.y, self.scale, self.scale)
 end
 
 Laser = {}
@@ -61,6 +85,10 @@ function Laser:update(dt)
     self.rect.pos = self.rect.pos + self.direction * self.speed * dt
 end
 
+function Laser:draw()
+    love.graphics.draw(self.image, self.rect.pos.x, self.rect.pos.y)
+end
+
 Explosion = {}
 
 function Explosion:new(image, pos)
@@ -80,6 +108,10 @@ function Explosion:update(dt)
     if self.animation.status == "paused" then
         self.is_dead = true
     end
+end
+
+function Explosion:draw()
+    self.animation:draw(self.image, self.pos.x, self.pos.y)
 end
 
 Player = {}
@@ -139,6 +171,10 @@ function Player:update(dt)
     self:move(dt)
 end
 
+function Player:draw()
+    love.graphics.draw(self.image, self.rect.pos.x, self.rect.pos.y)
+end
+
 local function withColor(color, func, ...)
     local old_r, old_g, old_b, old_a = love.graphics.getColor()
     love.graphics.setColor(love.math.colorFromBytes(colors.color(color)))
@@ -147,15 +183,13 @@ local function withColor(color, func, ...)
 end
 
 local function filterDead(list)
-    -- TODO: create a sprite group abstraction that does this automatically
     return filter(list, function(it) return not it.is_dead end)
 end
 
+local allSprites = sprite.Group:new()
 local player = Player:new()
 local Images = {}
-local starPositions = {}
 local meteors = {}
-local explosions = {}
 local lasers = {}
 local bigRect = Rect:new(0, 0)
 local gameOver = false
@@ -175,16 +209,19 @@ function love.load()
     Images.explosion = love.graphics.newImage("images/explosion/spritesheet.png")
 
     player:init(Images.player)
+    allSprites:add(player)
 
-    for i = 1, math.random(15, 20) do
-        starPositions[i] = {
-            x = math.random(0, WIN_WIDTH),
-            y = math.random(0, WIN_HEIGHT),
-            scale = math.random(3, 7) / 10
-        }
+    for _ = 1, math.random(15, 20) do
+        local pos = vector(math.random(0, WIN_WIDTH), math.random(0, WIN_HEIGHT))
+        local star = Star:new(Images.star, pos)
+        allSprites:add(star)
     end
 
-    Timer.every(1, function() table.insert(meteors, Meteor:new(Images.meteor)) end)
+    Timer.every(0.5, function()
+        local meteor = Meteor:new(Images.meteor)
+        table.insert(meteors, meteor)
+        allSprites:add(meteor)
+    end)
 end
 
 local function handleGlobalEvents()
@@ -192,6 +229,7 @@ local function handleGlobalEvents()
         player:shoot()
         local laser = Laser:new(Images.laser, player.rect:getMidTop())
         table.insert(lasers, laser)
+        allSprites:add(laser)
         laser:start()
     end
 end
@@ -203,20 +241,11 @@ function love.update(dt)
     end
     Timer.update(dt)
 
-    player:update(dt)
+    allSprites:update(dt)
 
     handleGlobalEvents()
 
-    for _, laser in ipairs(lasers) do
-        laser:update(dt)
-    end
-    for _, explosion in ipairs(explosions) do
-        explosion:update(dt)
-    end
-
     for _, meteor in ipairs(meteors) do
-        meteor:update(dt)
-
         if meteor.hitbox_rect:collideRect(player.hitbox_rect) then
             gameOver = true
         end
@@ -229,14 +258,21 @@ function love.update(dt)
                 laser.is_dead = true
                 meteor.is_dead = true
                 -- BOOOM!
-                table.insert(explosions, Explosion:new(Images.explosion, meteor.rect:getCenter()))
+                local explosion = Explosion:new(Images.explosion, meteor.rect:getCenter())
+                allSprites:add(explosion)
             end
         end
     end
 
+    -- TODO: in order to eliminate these manual filterDead calls, we'll have to
+    -- add some sort of "sprite type/class" to sprite groups, so that we can
+    -- manage their existence there in the same data structure, but keep track
+    -- of the different types when we need them to check collisions, etc. The
+    -- issue is that we cannot just use multiple sprite groups and call
+    -- group:update(dt) on all of them, otherwise the sprites will be updated
+    -- multiple times for the same frame.
     meteors = filterDead(meteors)
     lasers = filterDead(lasers)
-    explosions = filterDead(explosions)
 end
 
 function love.draw()
@@ -254,31 +290,10 @@ function love.draw()
         love.graphics.printf("Use SPACE to shoot and move with arrow keys", 0, WIN_HEIGHT / 2, WIN_WIDTH, "center")
     end
 
-    for _, starPos in ipairs(starPositions) do
-        love.graphics.draw(Images.star, starPos.x, starPos.y, starPos.scale, starPos.scale)
-    end
-    for _, meteor in ipairs(meteors) do
-        -- local boxRect = meteor.hitbox_rect
-        -- love.graphics.rectangle("line", boxRect.pos.x, boxRect.pos.y, boxRect.width, boxRect.height)
+    allSprites:draw()
 
-        love.graphics.draw(meteor.image, meteor.rect:getCenterX(), meteor.rect:getCenterY(), meteor.rotation, 1, 1,
-            meteor.image:getWidth() / 2,
-            meteor.image:getHeight() / 2)
-    end
-
+    -- TODO: display the score here instead of this
     love.graphics.printf(
         string.format("Lasers: %d, Meteors: %d", #lasers, #meteors),
         0, 10, WIN_WIDTH, "right")
-
-    for _, laser in ipairs(lasers) do
-        love.graphics.draw(laser.image, laser.rect.pos.x, laser.rect.pos.y)
-    end
-
-    for _, explosion in ipairs(explosions) do
-        explosion.animation:draw(explosion.image, explosion.pos.x, explosion.pos.y)
-    end
-
-    -- local boxRect = player.hitbox_rect
-    -- love.graphics.rectangle("line", boxRect.pos.x, boxRect.pos.y, boxRect.width, boxRect.height)
-    love.graphics.draw(player.image, player.rect.pos.x, player.rect.pos.y)
 end

@@ -6,24 +6,27 @@ function uniform(a, b)
     return a + (b - a) * math.random()
 end
 
-function random_choice(list)
-    return list[math.random(1, #list)]
+function random_choice(in_list)
+    return in_list[math.random(1, #in_list)]
 end
 
-function list_range(start, stop, step)
-    local list = {}
-    local count = 1
-    for i = start, stop, step do
-        list[count] = i
-        count = count + 1
+function range(start, stop, step)
+    step = step or 1
+    local value = start - step
+    return function()
+        value = value + step
+        if step > 0 and value <= stop then
+            return value
+        elseif step < 0 and value >= stop then
+            return value
+        end
     end
-    return list
 end
 
-function filter(list, predicate)
+function filter(in_list, predicate)
     predicate = predicate or function(it) return it end
     local new_list = {}
-    for _, item in ipairs(list) do
+    for _, item in ipairs(in_list) do
         if predicate(item) then
             table.insert(new_list, item)
         end
@@ -31,3 +34,18 @@ function filter(list, predicate)
     return new_list
 end
 
+function reversed(t)
+    local i = #t + 1
+    return function()
+        i = i - 1
+        if i > 0 then return t[i] end
+    end
+end
+
+function list(it)
+    local new_list = {}
+    for x in it do
+        table.insert(new_list, x)
+    end
+    return new_list
+end
