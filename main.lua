@@ -187,6 +187,7 @@ local meteors = sprite.Group:new()
 local lasers = sprite.Group:new()
 local player = Player:new()
 local Images = {}
+local Sounds = {}
 local bigRect = Rect:new(0, 0)
 local gameOver = false
 local score = 0
@@ -195,7 +196,7 @@ local score = 0
 function love.load()
     math.randomseed(os.time())
 
-    -- TODO: set window title
+    love.window.setTitle("👾 space shooter")
     WIN_WIDTH, WIN_HEIGHT = love.graphics.getDimensions()
     bigRect.width, bigRect.height = WIN_WIDTH, WIN_HEIGHT
     bigRect:inflateInplace(500, 500)
@@ -205,6 +206,12 @@ function love.load()
     Images.player = love.graphics.newImage("images/player.png")
     Images.meteor = love.graphics.newImage("images/meteor.png")
     Images.explosion = love.graphics.newImage("images/explosion/spritesheet.png")
+
+    Sounds.shoot = love.audio.newSource("audio/laser.wav", "static")
+    Sounds.explosion = love.audio.newSource("audio/explosion.wav", "static")
+    Sounds.game_music = love.audio.newSource("audio/game_music.ogg", "stream")
+    Sounds.game_music:setVolume(0.5)
+    Sounds.game_over_music = love.audio.newSource("audio/game_over_music.ogg", "stream")
 
     player:init(Images.player)
     allSprites:add(player)
@@ -220,12 +227,15 @@ function love.load()
         meteors:add(meteor)
         allSprites:add(meteor)
     end)
+
+    Sounds.game_over_music:stop()
+    Sounds.game_music:play()
 end
 
 local function handleGlobalEvents()
     if love.keyboard.isDown("space") and player.canShoot then
         player:shoot()
-        -- TODO: play sound
+        Sounds.shoot:play()
         local laser = Laser:new(Images.laser, player.rect:getMidTop())
         allSprites:add(laser)
         lasers:add(laser)
@@ -237,6 +247,8 @@ local function handleCollisions()
     for meteor in meteors:iter() do
         if meteor.hitbox_rect:collideRect(player.hitbox_rect) then
             gameOver = true
+            Sounds.game_music:stop()
+            Sounds.game_over_music:play()
         end
 
         if not bigRect:contains(meteor.rect) then
@@ -249,7 +261,7 @@ local function handleCollisions()
                 -- BOOOM!
                 allSprites:add(Explosion:new(Images.explosion, meteor.rect:getCenter()))
                 score = score + 5
-                -- TODO: play sound
+                Sounds.explosion:play()
             end
         end
     end
