@@ -21,23 +21,6 @@ function M.Group:addAll(sprites_to_add)
     end
 end
 
-function M.Group:update(dt)
-    for _, sprite in ipairs(self.sprites) do
-        sprite:update(dt)
-    end
-    self:cleanup()
-end
-
-function M.Group:cleanup()
-    self.sprites = filter(self.sprites, function(it) return not it.is_dead end)
-end
-
-function M.Group:draw()
-    for _, sprite in ipairs(self.sprites) do
-        sprite:draw()
-    end
-end
-
 function M.Group:iter()
     local i = 0
     return function()
@@ -45,6 +28,29 @@ function M.Group:iter()
         if i <= #self.sprites then
             return self.sprites[i]
         end
+    end
+end
+
+function M.Group:killall()
+    for sprite in self:iter() do
+        sprite.is_dead = true
+    end
+end
+
+function M.Group:cleanup()
+    self.sprites = filter(self.sprites, function(it) return not it.is_dead end)
+end
+
+function M.Group:update(dt)
+    for sprite in self:iter() do
+        sprite:update(dt)
+    end
+    self:cleanup()
+end
+
+function M.Group:draw()
+    for sprite in self:iter() do
+        sprite:draw()
     end
 end
 

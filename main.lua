@@ -127,9 +127,14 @@ end
 
 function Player:init(image)
     self.image = image
-    self.rect = Rect.fromImage(image, vector(WIN_WIDTH / 2 - image:getWidth() / 2, WIN_HEIGHT - 200))
+    self.rect = Rect.fromImage(image)
+    self:resetInitialPos()
     self.hitbox_rect = self.rect:inflated(-10, -25)
     self:update_hitbox()
+end
+
+function Player:resetInitialPos()
+    self.rect.pos = vector(WIN_WIDTH / 2 - self.image:getWidth() / 2, WIN_HEIGHT - 200)
 end
 
 function Player:update_hitbox()
@@ -206,6 +211,8 @@ function love.load()
     Images.player = love.graphics.newImage("images/player.png")
     Images.meteor = love.graphics.newImage("images/meteor.png")
     Images.explosion = love.graphics.newImage("images/explosion/spritesheet.png")
+    Images.big_font = love.graphics.newFont("images/Oxanium-Bold.ttf", 60)
+    Images.medium_font = love.graphics.newFont("images/Oxanium-Bold.ttf", 20)
 
     Sounds.shoot = love.audio.newSource("audio/laser.wav", "static")
     Sounds.explosion = love.audio.newSource("audio/explosion.wav", "static")
@@ -243,6 +250,22 @@ local function handleGlobalEvents()
     end
 end
 
+local function handleGameOverEvents()
+    if love.keyboard.isDown("return") and gameOver then
+        score = 0
+
+        meteors:killall()
+        lasers:killall()
+        meteors:cleanup()
+        allSprites:cleanup()
+
+        Sounds.game_over_music:stop()
+        player:resetInitialPos()
+        gameOver = false
+        Sounds.game_music:play()
+    end
+end
+
 local function handleCollisions()
     for meteor in meteors:iter() do
         if meteor.hitbox_rect:collideRect(player.hitbox_rect) then
@@ -269,7 +292,7 @@ end
 
 function love.update(dt)
     if gameOver then
-        -- TODO: allow restarting game
+        handleGameOverEvents()
         return
     end
     Timer.update(dt)
@@ -290,13 +313,21 @@ function love.draw()
     end)
 
     if gameOver then
-        love.graphics.printf("GAME OVER", 0, WIN_HEIGHT / 2, WIN_WIDTH, "center")
+        withColor("antiquewhite", function()
+            love.graphics.printf(
+                "GAME OVER", Images.big_font, 0, WIN_HEIGHT / 2 - 100, WIN_WIDTH, "center")
+            love.graphics.printf(
+                string.format("Your score: %d", score), Images.medium_font, 0, WIN_HEIGHT / 2, WIN_WIDTH, "center")
+            love.graphics.printf(
+                "Press ENTER to play again", Images.medium_font, 0, WIN_HEIGHT / 2 + 50, WIN_WIDTH, "center")
+        end)
         return
     end
 
     if love.timer.getTime() < 5 then
-        love.graphics.printf("Get Ready!", 0, WIN_HEIGHT / 2 - 50, WIN_WIDTH, "center")
-        love.graphics.printf("Use SPACE to shoot and move with arrow keys", 0, WIN_HEIGHT / 2, WIN_WIDTH, "center")
+        love.graphics.printf("Get Ready!", Images.medium_font, 0, WIN_HEIGHT / 2 - 50, WIN_WIDTH, "center")
+        love.graphics.printf("Use SPACE to shoot and move with arrow keys", Images.medium_font, 0, WIN_HEIGHT / 2,
+            WIN_WIDTH, "center")
     end
 
     allSprites:draw()
