@@ -224,14 +224,14 @@ function love.load()
     Sounds.game_music:setVolume(0.5)
     Sounds.game_over_music = love.audio.newSource("audio/game_over_music.ogg", "static")
 
-    player:init(Images.player)
-    allSprites:add(player)
-
     for _ = 1, math.random(15, 20) do
         local pos = vector(math.random(0, WIN_WIDTH), math.random(0, WIN_HEIGHT))
         local star = Star:new(Images.star, pos)
         allSprites:add(star)
     end
+
+    player:init(Images.player)
+    allSprites:add(player)
 
     Timer.every(0.5, function()
         local meteor = Meteor:new(Images.meteor)
