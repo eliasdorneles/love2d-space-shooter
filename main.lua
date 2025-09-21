@@ -161,6 +161,10 @@ end
 
 function Player:move(dt)
     self.rect.pos = self.rect.pos + self.direction * self.speed * dt
+    self.rect.pos.x = max { 0, self.rect.pos.x }
+    self.rect.pos.x = min { WIN_WIDTH - self.rect.width, self.rect.pos.x }
+    self.rect.pos.y = max { 0, self.rect.pos.y }
+    self.rect.pos.y = min { WIN_HEIGHT - self.rect.height, self.rect.pos.y }
     self:update_hitbox()
 end
 

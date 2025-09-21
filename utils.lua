@@ -49,3 +49,21 @@ function list(it)
     end
     return new_list
 end
+
+function min(list)
+    m = nil
+    for _, n in ipairs(list) do
+        if m == nil then m = n end
+        if n < m then m = n end
+    end
+    return m
+end
+
+function max(list)
+    m = nil
+    for _, n in ipairs(list) do
+        if m == nil then m = n end
+        if n > m then m = n end
+    end
+    return m
+end
