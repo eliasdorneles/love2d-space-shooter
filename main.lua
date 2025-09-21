@@ -211,8 +211,8 @@ function love.load()
     Images.player = love.graphics.newImage("images/player.png")
     Images.meteor = love.graphics.newImage("images/meteor.png")
     Images.explosion = love.graphics.newImage("images/explosion/spritesheet.png")
-    Images.big_font = love.graphics.newFont("images/Oxanium-Bold.ttf", 60)
-    Images.medium_font = love.graphics.newFont("images/Oxanium-Bold.ttf", 20)
+    Images.big_font = love.graphics.newFont("images/04B_11.ttf", 60)
+    Images.medium_font = love.graphics.newFont("images/04B_11.ttf", 20)
 
     Sounds.shoot = love.audio.newSource("audio/laser.wav", "static")
     Sounds.explosion = love.audio.newSource("audio/explosion.wav", "static")
@@ -326,7 +326,7 @@ function love.draw()
 
     if love.timer.getTime() < 5 then
         love.graphics.printf("Get Ready!", Images.medium_font, 0, WIN_HEIGHT / 2 - 50, WIN_WIDTH, "center")
-        love.graphics.printf("Use SPACE to shoot and move with arrow keys", Images.medium_font, 0, WIN_HEIGHT / 2,
+        love.graphics.printf("Use SPACE to shoot\nMove with arrow keys", Images.medium_font, 0, WIN_HEIGHT / 2,
             WIN_WIDTH, "center")
     end
 
