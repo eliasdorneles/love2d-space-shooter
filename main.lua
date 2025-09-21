@@ -216,9 +216,9 @@ function love.load()
 
     Sounds.shoot = love.audio.newSource("audio/laser.wav", "static")
     Sounds.explosion = love.audio.newSource("audio/explosion.wav", "static")
-    Sounds.game_music = love.audio.newSource("audio/game_music.ogg", "stream")
+    Sounds.game_music = love.audio.newSource("audio/game_music.ogg", "static")
     Sounds.game_music:setVolume(0.5)
-    Sounds.game_over_music = love.audio.newSource("audio/game_over_music.ogg", "stream")
+    Sounds.game_over_music = love.audio.newSource("audio/game_over_music.ogg", "static")
 
     player:init(Images.player)
     allSprites:add(player)
