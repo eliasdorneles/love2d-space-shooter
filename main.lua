@@ -7,8 +7,8 @@ local sprite = require("sprite")
 local Rect = require("rect")
 
 -- uncomment the lines below to allow hot-reloading
-local lick = require("vendor/lick")
-lick.reset = true
+-- local lick = require("vendor/lick")
+-- lick.reset = true
 
 Meteor = {}
 local meteorAngleRanges = list(range(-60, 60, 10))
@@ -203,6 +203,7 @@ local score = 0
 
 
 function love.load()
+    print('starting space shooter...')
     math.randomseed(os.time())
 
     love.window.setTitle("👾 space shooter")
