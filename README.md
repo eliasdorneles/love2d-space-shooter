@@ -2,7 +2,7 @@
 
 A simple space shooter game built with the LÖVE 2D game framework.
 
-![](screenshot.png)
+Play online at: https://eliasdorneles.com/love2d-space-shooter/
 
 ## Requirements
 

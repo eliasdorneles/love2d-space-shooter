@@ -6,4 +6,4 @@ game-web-build: game.love
 
 release-web: game-web-build
 	uvx ghp-import -m "Deploy to GitHub Pages" game-web-build
-	git push origin gh-pages:master --force
+	git push origin gh-pages --force
