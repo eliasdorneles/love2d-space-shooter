@@ -191,9 +191,7 @@ local function withColor(color, func, ...)
     love.graphics.setColor(old_r, old_g, old_b, old_a)
 end
 
-local allSprites = sprite.Group:new()
-local meteors = sprite.Group:new()
-local lasers = sprite.Group:new()
+local allSprites = sprite.Registry:new()
 local player = Player:new()
 local Images = {}
 local Sounds = {}
@@ -232,12 +230,11 @@ function love.load()
     end
 
     player:init(Images.player)
-    allSprites:add(player)
+    allSprites:add("player", player)
 
     Timer.every(0.5, function()
         local meteor = Meteor:new(Images.meteor)
-        meteors:add(meteor)
-        allSprites:add(meteor)
+        allSprites:add("meteors", meteor)
     end)
 
     Sounds.game_over_music:stop()
@@ -249,8 +246,7 @@ local function handleGlobalEvents()
         player:shoot()
         Sounds.shoot:play()
         local laser = Laser:new(Images.laser, player.rect:getMidTop())
-        allSprites:add(laser)
-        lasers:add(laser)
+        allSprites:add("lasers", laser)
         laser:start()
     end
 end
@@ -259,9 +255,8 @@ local function handleGameOverEvents()
     if love.keyboard.isDown("return") and gameOver then
         score = 0
 
-        meteors:killall()
-        lasers:killall()
-        meteors:cleanup()
+        allSprites:killall("meteors")
+        allSprites:killall("lasers")
         allSprites:cleanup()
 
         Sounds.game_over_music:stop()
@@ -272,7 +267,7 @@ local function handleGameOverEvents()
 end
 
 local function handleCollisions()
-    for meteor in meteors:iter() do
+    for meteor in allSprites:groupiter("meteors") do
         if meteor.hitbox_rect:collideRect(player.hitbox_rect) then
             gameOver = true
             Sounds.game_music:stop()
@@ -282,7 +277,7 @@ local function handleCollisions()
         if not bigRect:contains(meteor.rect) then
             meteor.is_dead = true
         end
-        for laser in lasers:iter() do
+        for laser in allSprites:groupiter("lasers") do
             if meteor.hitbox_rect:collideRect(laser.rect) then
                 laser.is_dead = true
                 meteor.is_dead = true
@@ -308,8 +303,7 @@ function love.update(dt)
 
     handleCollisions()
 
-    meteors:cleanup()
-    lasers:cleanup()
+    allSprites:cleanup()
 end
 
 function love.draw()
